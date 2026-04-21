@@ -1,0 +1,8 @@
+streamlit>=1.32.0
+Pillow>=9.5.0
+numpy>=1.24.0
+requests>=2.31.0
+opencv-python-headless>=4.9.0.80
+# Optional but recommended for feature-distance quality:
+torch>=2.1.0
+torchvision>=0.16.0

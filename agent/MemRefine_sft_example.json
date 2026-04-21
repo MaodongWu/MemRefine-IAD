@@ -1,0 +1,122 @@
+[
+  {
+    "id": "memrefine_sft_mpdd_000_hole",
+    "source_dataset": "MPDD",
+    "image": "/mnt/nfs/wmd/data/Industrial_test_real/MPDD/bracket_black/test/hole/000.png",
+    "task_type": "anomaly_detection_mcq",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are MemRefine-IAD inspector.\n\nYou can use tool-style calls in text (do not execute real code):\n1) image_zoom_in_tool\n2) self_check_tool\n\nTool call format (must be exact):\n<tool_call>{\"name\":\"TOOL_NAME\",\"arguments\":{...}}</tool_call>\n\nWorkflow:\n- First do global inspection and write [MEMORY_PATCH] step1_global.\n- If uncertain or suspicious, call image_zoom_in_tool.\n- After tool response, write [MEMORY_PATCH] step2_zoomcrop and a candidate answer.\n- Then call self_check_tool with stage1 conclusion + zoom evidence + candidate answer/confidence.\n- After self-check response, write [MEMORY_PATCH] step3_final and output final answer.\n\nFinal answer constraint:\n- Output exactly one final tag: <answer>A</answer> or <answer>B</answer>.\n- A = No anomaly, B = Anomaly exists.\n"
+      },
+      {
+        "role": "user",
+        "content": "<image>\nQuestion: Is there an anomaly in this image?\nOptions:\nA. No anomaly\nB. Anomaly exists\nPlease do global inspection first, then local verification if needed."
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep1_global: Global scan finds a suspicious dark cavity-like region; confidence is medium.\n[/MEMORY_PATCH]\n<tool_call>{\"name\":\"image_zoom_in_tool\",\"arguments\":{\"bbox\":[0.41,0.33,0.22,0.24],\"reason\":\"verify suspected cavity-like defect\"}}</tool_call>"
+      },
+      {
+        "role": "tool",
+        "name": "image_zoom_in_tool",
+        "content": "{\"ok\":true,\"crop_path\":\".temp/crops/memrefine_sft_mpdd_000_hole_crop1.png\",\"bbox\":[0.41,0.33,0.22,0.24],\"note\":\"placeholder crop response for SFT\"}"
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep2_zoomcrop: Local zoom evidence shows structural break/hole pattern, not a normal texture variation.\ncandidate_answer: B\ncandidate_confidence: 0.86\n[/MEMORY_PATCH]\n<tool_call>{\"name\":\"self_check_tool\",\"arguments\":{\"stage1_conclusion\":\"suspicious cavity-like region\",\"zoom_evidence\":\"clear local break/hole pattern\",\"candidate_answer\":\"B\",\"candidate_confidence\":0.86}}</tool_call>"
+      },
+      {
+        "role": "tool",
+        "name": "self_check_tool",
+        "content": "{\"consistency\":true,\"revised_answer\":null,\"note\":\"Global and local evidence are consistent with anomaly.\"}"
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep3_final: Self-check confirms consistency; keep anomaly decision.\n[/MEMORY_PATCH]\nFinal decision: anomaly exists.\n<answer>B</answer>"
+      }
+    ],
+    "label": "B",
+    "metadata": {
+      "product": "bracket_black",
+      "defect_type": "hole",
+      "normal_flag": "good",
+      "sft_weight": 1.0
+    },
+    "train_targets": {
+      "learn_roles": [
+        "assistant"
+      ],
+      "mask_roles": [
+        "system",
+        "user",
+        "tool"
+      ],
+      "priority": [
+        "final_answer",
+        "self_check_revision",
+        "memory_patches"
+      ]
+    }
+  },
+  {
+    "id": "memrefine_sft_visa_candle_0000_good",
+    "source_dataset": "VisA",
+    "image": "/mnt/nfs/wmd/data/Industrial_test_real/VisA/candle/train/good/0000.JPG",
+    "task_type": "anomaly_detection_mcq",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are MemRefine-IAD inspector.\n\nYou can use tool-style calls in text (do not execute real code):\n1) image_zoom_in_tool\n2) self_check_tool\n\nTool call format (must be exact):\n<tool_call>{\"name\":\"TOOL_NAME\",\"arguments\":{...}}</tool_call>\n\nWorkflow:\n- First do global inspection and write [MEMORY_PATCH] step1_global.\n- If uncertain or suspicious, call image_zoom_in_tool.\n- After tool response, write [MEMORY_PATCH] step2_zoomcrop and a candidate answer.\n- Then call self_check_tool with stage1 conclusion + zoom evidence + candidate answer/confidence.\n- After self-check response, write [MEMORY_PATCH] step3_final and output final answer.\n\nFinal answer constraint:\n- Output exactly one final tag: <answer>A</answer> or <answer>B</answer>.\n- A = No anomaly, B = Anomaly exists.\n"
+      },
+      {
+        "role": "user",
+        "content": "<image>\nQuestion: Is there an anomaly in this image?\nOptions:\nA. No anomaly\nB. Anomaly exists\nPlease do global inspection first, then local verification if needed."
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep1_global: Global appearance is clean and uniform; no obvious defect cue, confidence medium.\n[/MEMORY_PATCH]\n<tool_call>{\"name\":\"image_zoom_in_tool\",\"arguments\":{\"bbox\":[0.48,0.47,0.18,0.20],\"reason\":\"sanity-check local texture consistency\"}}</tool_call>"
+      },
+      {
+        "role": "tool",
+        "name": "image_zoom_in_tool",
+        "content": "{\"ok\":true,\"crop_path\":\".temp/crops/memrefine_sft_visa_candle_0000_good_crop1.png\",\"bbox\":[0.48,0.47,0.18,0.20],\"note\":\"placeholder crop response for SFT\"}"
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep2_zoomcrop: Zoomed region is still clean; no crack, stain, deformation, or missing-part cue.\ncandidate_answer: A\ncandidate_confidence: 0.82\n[/MEMORY_PATCH]\n<tool_call>{\"name\":\"self_check_tool\",\"arguments\":{\"stage1_conclusion\":\"globally clean\",\"zoom_evidence\":\"locally clean and consistent\",\"candidate_answer\":\"A\",\"candidate_confidence\":0.82}}</tool_call>"
+      },
+      {
+        "role": "tool",
+        "name": "self_check_tool",
+        "content": "{\"consistency\":true,\"revised_answer\":null,\"note\":\"No contradiction between global and local evidence.\"}"
+      },
+      {
+        "role": "assistant",
+        "content": "[MEMORY_PATCH]\nstep3_final: Self-check keeps the normal decision.\n[/MEMORY_PATCH]\nFinal decision: no anomaly.\n<answer>A</answer>"
+      }
+    ],
+    "label": "A",
+    "metadata": {
+      "product": "candle",
+      "defect_type": "good",
+      "normal_flag": "good",
+      "sft_weight": 1.0
+    },
+    "train_targets": {
+      "learn_roles": [
+        "assistant"
+      ],
+      "mask_roles": [
+        "system",
+        "user",
+        "tool"
+      ],
+      "priority": [
+        "final_answer",
+        "self_check_revision",
+        "memory_patches"
+      ]
+    }
+  }
+]

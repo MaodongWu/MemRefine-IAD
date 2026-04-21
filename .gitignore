@@ -1,0 +1,47 @@
+__pycache__/
+*.pyc
+.env
+.temp/
+outputs/
+logs/
+*.log
+.DS_Store
+
+# Secrets / credentials
+.dashscope_key
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.secret
+secrets/
+**/secrets/
+
+# Large experiment artifacts
+result/
+data/
+wandb/
+runs/
+checkpoints/
+**/checkpoint-*/
+**/merged-checkpoint-*/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+
+# Python / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+*.egg-info/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/

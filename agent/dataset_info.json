@@ -1,0 +1,19 @@
+{
+  "MemRefine_sft_example": {
+    "file_name": "MemRefine_sft_example.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "image"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant",
+      "observation_tag": "tool",
+      "function_tag": "function_call",
+      "system_tag": "system"
+    }
+  }
+}
