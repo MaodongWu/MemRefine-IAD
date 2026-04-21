@@ -20,7 +20,7 @@ secrets/
 
 # Large experiment artifacts
 result/
-data/
+agent/
 wandb/
 runs/
 checkpoints/

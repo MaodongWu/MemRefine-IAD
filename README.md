@@ -1,85 +1,96 @@
 # MemRefine-IAD
 
-A Visual ReAct agent baseline for Industrial Anomaly Detection (IAD), adapted from the GeoVista-style project layout with the core tool pair:
+MemRefine-IAD is an industrial anomaly detection project with two complementary modes:
 
-- `image_zoom_in_tool`: crop and zoom local evidence
-- `retrieve_kb`: retrieve supporting context from an industrial anomaly knowledge base
+1. Known-category inspection: directly use a VLM to judge anomaly and describe location.
+2. Unknown-category inspection: use user-provided normal samples for feature-distance anomaly judgment, then call VLM for localization and explanation.
 
-## Project Goals
+---
 
-- Keep the **agent loop** simple and auditable.
-- Separate **tool implementations** from **agent reasoning**.
-- Provide a clean bridge to training stacks (recommended: EasyR1).
+## Web App (Real-time Demo)
 
-## Quick Start
+### Features
 
-```bash
-cd /mnt/nfs/wmd/research/MemRefine-IAD
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+- Known category mode:
+  - Input: one test image.
+  - Output: anomaly decision (`A/B`) + anomaly location + rationale.
+- Unknown category mode:
+  - Input: one test image + several normal reference images.
+  - Output: distance-based anomaly score + threshold-based decision + VLM location/rationale + fused final decision.
 
-python examples/infer_example.py \
-  --image /mnt/nfs/wmd/data/MVTec-AD/bottle/test/broken_large/000.png \
-  --question "Is there anomaly? localize and explain."
-```
+### Demo Launch Link
 
-If the sample path does not exist yet, use any local image path.
+The demo is self-hosted. Users must provide their own VLM service URL/model/API key in the app sidebar.
 
-### Run with local vLLM (Qwen2.5-VL)
+- Demo entry (after startup): [http://localhost:7862](http://localhost:7862)
+- App source: [web/app.py](web/app.py)
 
-```bash
-export MODEL_PATH=/mnt/nfs/wmd/model/Qwen2.5-VL-7B-Instruct
-export VLLM_HOST=localhost
-export VLLM_PORT=8000
-
-bash inference/vllm_deploy.sh
-```
-
-Then in another shell:
+Start command:
 
 ```bash
-python examples/infer_example.py \
-  --image /mnt/nfs/wmd/data/MVTec-AD/bottle/test/broken_large/000.png \
-  --question "Is there anomaly? localize and explain." \
-  --backend vllm \
-  --host localhost \
-  --port 8000 \
-  --model-name qwen2.5-vl
+cd /mnt/nfs/wmd/research/MemRefine-IAD/web
+/mnt/nfs/wmd/conda_envs/vllm/bin/streamlit run app.py --server.port 7862 --server.address 0.0.0.0
 ```
 
-## Layout
+### Detection Screenshot (Placeholder)
 
-- `agent/`: ReAct loop, prompt templates, tool call parser
-- `tools/`: zoom/retrieval tool implementations + unified tool schema (`tools/spec.py`)
-- `inference/`: serving and batch inference scripts
-- `eval/`: IAD metrics scripts (image-level + pixel-level)
-- `scripts/`: data conversion helpers (e.g., SFT jsonl)
-- `training/`: EasyR1 integration notes and config stubs
-- `configs/`: runtime config yaml files
-- `tests/`: smoke tests for tool interface stability
+> Replace this placeholder with your final web demo screenshot.
 
-## Recommended Training Strategy
+![MemRefine-IAD Web Demo Screenshot Placeholder](assets/web_demo_screenshot_placeholder.png)
 
-- Keep inference/eval orchestration here.
-- Reuse `EasyR1-main` for SFT/RL optimization loops.
-- Exchange data through JSONL + unified conversation format.
+---
 
-## Tool Backends
+## Trained Models
 
-Current tool stack:
+The following model entries are prepared. Replace links with your final Hugging Face model pages.
 
-- `image_zoom_in_tool`: local crop + save
-- `retrieve_kb`: local JSONL industrial knowledge base (fallback to builtin seed entries)
+| Model | Description | Download Link |
+|---|---|---|
+| MemRefine(LLaVA-OneVision-SI-7B) | SFT model for agent-style anomaly reasoning | [HF link (to be updated)](https://huggingface.co/your-org/MemRefine-LLaVA-OneVision-SI-7B) |
+| MemRefine(Qwen2.5-VL-Instruct-7B) | MemRefine-compatible Qwen 7B variant | [HF link (to be updated)](https://huggingface.co/your-org/MemRefine-Qwen2.5-VL-7B) |
+| MemRefine(Qwen2.5-VL-Instruct-3B) | MemRefine-compatible Qwen 3B variant | [HF link (to be updated)](https://huggingface.co/your-org/MemRefine-Qwen2.5-VL-3B) |
 
-Optional environment variables:
+---
 
-- `IAD_KB_PATH=/abs/path/to/industrial_kb.jsonl`
-- `IAD_CROP_DIR=.temp/crops`
+## Repository Layout
 
-## Smoke Test
+- `web/`: Streamlit demo app (`web/app.py`, `web/backend.py`)
+- `scripts/`: inference, evaluation, and training shell scripts
+- `scripts/train/`: training launch scripts you keep for reproducibility
+- `data/`: evaluation data/config files used by benchmark runs
+- `configs/`: project runtime config files
+- `assets/`: figures and static assets for docs/demo
+- `release/`: preflight publishing helpers
+
+---
+
+## Quick Start (Web)
+
+Install dependencies:
 
 ```bash
-cd /mnt/nfs/wmd/research/MemRefine-IAD
-python -m unittest tests/test_tools_smoke.py -v
+cd /mnt/nfs/wmd/research/MemRefine-IAD/web
+/mnt/nfs/wmd/conda_envs/vllm/bin/pip install -r requirements.txt
 ```
+
+Run:
+
+```bash
+/mnt/nfs/wmd/conda_envs/vllm/bin/streamlit run /mnt/nfs/wmd/research/MemRefine-IAD/web/app.py --server.port 7862 --server.address 0.0.0.0
+```
+
+Then open:
+
+- Local: `http://localhost:7862`
+- LAN: `http://<your_server_ip>:7862`
+
+---
+
+## Notes for Public Users
+
+- This repository does not ship hosted VLM endpoints.
+- To use the web demo, configure your own OpenAI-compatible VLM service in the sidebar:
+  - `Base URL` (e.g., local vLLM OpenAI API endpoint)
+  - `Model Name`
+  - `API Key`
+
