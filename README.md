@@ -79,11 +79,7 @@ MemRefine-IAD/
 │   ├── MemRefineIAD/            # open-source MLLM inference (Qwen / LLaVA)
 │   ├── commercial/raw/          # commercial API raw-inference evaluation
 │   └── train/                   # SFT training launch scripts
-├── agent/
-│   └── real_build/              # SFT trajectory construction pipeline
 ├── web/                         # Streamlit real-time demo (app.py, backend.py)
-├── helper/                      # evaluation helpers (summary, metrics)
-├── release/                     # packaging / preflight utilities
 └── README.md
 ```
 
