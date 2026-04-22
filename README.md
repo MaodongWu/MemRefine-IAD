@@ -337,4 +337,4 @@ This project is released under the [Apache-2.0 License](LICENSE). Dataset licens
 
 ## 📬 Contact
 
-For questions, issues or collaborations, please open a GitHub [Issue](../../issues) or contact the authors at `your_email@example.com`.
+For questions, issues or collaborations, please open a GitHub [Issue](../../issues) or contact the authors at `wumd1522@mails.jlu.edu.cn`.
