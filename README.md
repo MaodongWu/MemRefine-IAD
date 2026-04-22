@@ -1,8 +1,7 @@
 # MemRefine-IAD: Memory-Guided Iterative Agent for Industrial Anomaly Detection
 
 <p align="center">
-  <a href="https://arxiv.org/abs/xxxx.xxxxx"><img src="https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg" alt="arXiv"></a>
-  <a href="https://huggingface.co/"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Models-yellow" alt="HuggingFace"></a>
+  <a href="https://huggingface.co/mooorton/MemRefine-IAD"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Models-yellow" alt="HuggingFace"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/PyTorch-2.x-ee4c2c.svg" alt="PyTorch">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776ab.svg" alt="Python">
@@ -13,32 +12,26 @@
 > Wu Maodong, Lv Shuai.
 
 <p align="center">
-  <img src="assets/teaser_placeholder.png" width="85%" alt="MemRefine-IAD pipeline (placeholder)">
+  <img src="assets/xianyu.png" width="85%" alt="MemRefine-IAD pipeline (placeholder)">
   <br>
   <em>Figure 1. Overview of MemRefine-IAD (placeholder — to be replaced).</em>
 </p>
 
 ---
 
-## 📌 TL;DR
+## 📌 Abstract
 
-MemRefine-IAD formalizes industrial anomaly detection (IAD) as a **multi-stage reasoning state machine** over a multimodal large language model (MLLM), and introduces **Working Memory Patch** — a structured, supervisable memory written directly into assistant tokens and trained with a **segment-weighted process-supervised SFT loss**.
+MemRefine-IAD is a **memory-guided iterative agent framework for industrial anomaly detection (IAD)**. Its core innovations consist of a multi-stage reasoning mechanism, a Working Memory Patch module, and customized trajectory supervision dataset construction. Our method belongs to the **weak-supervised trajectory-supervised zero-shot learning paradigm** for industrial anomaly detection, which achieves strong generalization ability and practical application value under complex industrial working conditions.
 
-On six public IAD benchmarks (MVTec, MPDD, VisA, DAGM, DTD, SDD), **MemRefine-IAD (Qwen2.5-VL-Instruct 7B)** reaches **78.1** AD average, surpassing raw-inference commercial models GPT-4o-mini (66.7) and Claude-Sonnet-4 (69.9), and improves the open-source Qwen2.5-VL 7B baseline (59.0) by **+19.1** points without any extra labels.
+On six public IAD benchmarks (MVTec, MPDD, VisA, DAGM, DTD, SDD), **MemRefine-IAD (LLaVA-OneVision-SI) 7B** achieves an average AD performance of **79.2**.
+This result outperforms raw-inference commercial closed models GPT-4o-mini (66.7) and Claude-Sonnet-4 (69.9), as well as Anomaly-OV 7B (78.9) — another open-source method under the same weak-supervised zero-shot paradigm. Meanwhile, without introducing any answer annotations, our method improves the vanilla open-source baseline Qwen2.5-VL-Instruct 7B (59.0) by **+20.2 points**.
 
 Key contributions:
 
-- 🧠 **Multi-stage reasoning state machine**: `GlobalObs → ZoomCrop → MemUpdate → SelfCheck → FinalAnswer`, with self-check triggered rollback.
-- 📝 **Working Memory Patch**: step-wise structured JSON written into assistant-visible, supervisable tokens (`step1_global`, `step2_zoomcrop`, `step3_selfcheck/final`).
-- 🎯 **Process-supervised SFT**: segment-weighted cross-entropy loss over process / memory / self-check / final-answer spans.
-- 🌐 **Dual-mode real-time demo**: *known-class zero-shot* and *unknown-class few-shot + feature-distance fusion*.
-
----
-
-## 🔥 News
-
-- **[2025-xx-xx]** Code, pretrained checkpoints and six-benchmark evaluation scripts released.
-- **[2025-xx-xx]** Paper available on arXiv.
+- 🧠 Memory-guided multi-stage iterative reasoning mechanism: `GlobalObs → ZoomCrop → MemUpdate → SelfCheck → FinalAnswer`, with self-check triggered rollback.
+- 📝 Working Memory Patch: step-wise structured JSON written into assistant-visible, supervisable tokens (`step1_global`, `step2_zoomcrop`, `step3_selfcheck/final`).
+- 🎯 Trajectory-supervised process-supervised SFT: segment-weighted cross-entropy loss over process / memory / self-check / final-answer spans.
+- 🌐 Dual-mode real-time demo: *known-class zero-shot* and *unknown-class few-shot + feature-distance fusion*.
 
 ---
 
@@ -54,21 +47,24 @@ Six-benchmark AD accuracy (%). **Bold** = best open-source result; *italic* = pr
 | Claude-Sonnet-4 (raw) | 68.4 | 66.6 | 66.8 | 69.7 | 72.4 | 75.2 | 69.9 |
 | IAD-R1 (Qwen2.5-VL) 3B | *77.6* | *59.2* | *69.8* | *85.2* | *89.1* | *83.4* | *77.4* |
 | IAD-R1 (LLaVA-OV-SI) 7B | *86.7* | *70.9* | *78.0* | *94.8* | *96.2* | *90.1* | *86.1* |
-| Anomaly-OV 7B | — | — | — | — | — | — | — |
-| LLaVA-OV-SI 3B | — | — | — | — | — | — | — |
+| Anomaly-OV 7B | 74.3 | 70.3 | **74.3** | 77.5 | 90.7 | **88.7** | 78.9 |
+| LLaVA-OV-SI 7B | 82.0 | 57.0 | 59.6 | 75.4 | 76.8 | 55.1 | 67.7 |
+| AnomalyGPT 7B | 46.6 | 54.2 | 57.3 | 49.6 | 64.1 | 49.5 | 53.6 |
 | Qwen2.5-VL-Instruct 3B | 62.3 | 56.2 | 57.7 | 53.9 | 65.8 | 51.0 | 57.8 |
 | Qwen2.5-VL-Instruct 7B | 64.3 | 56.0 | 57.7 | 56.7 | 57.1 | 62.3 | 59.0 |
 | **MemRefine-IAD (Qwen2.5-VL) 3B** | 76.0 | 57.2 | 72.4 | 83.0 | 89.7 | 82.9 | **76.9** |
 | **MemRefine-IAD (Qwen2.5-VL) 7B** | **80.9** | **60.4** | 71.3 | **87.0** | **90.1** | 78.6 | **78.1** |
-| **MemRefine-IAD (LLaVA-OV-SI) 7B** | — | — | — | — | 92.4 | — | — |
+| **MemRefine-IAD (LLaVA-OV-SI) 7B** | **82.2** | **62.1** | **71.2** | **81.3** | **92.4** | **86.0** | **79.2** |
 
 ### Ablation
 
-| Model | Stage | MVTec | Avg.* |
-|---|---|:---:|:---:|
-| Qwen2.5-VL 7B | raw | 64.34 | — |
-| Qwen2.5-VL 7B | + agent-zoom | 75.80 | — |
-| Qwen2.5-VL 7B | + agent-zoom + memory (**Ours**) | **76.96** | — |
+| Model | Stage | Average |
+|:---|:---|:---:|
+| LLaVA-OneVision-SI-0.5B | raw | 50.7 |
+| LLaVA-OneVision-SI-0.5B | agent-zoom-memory | 51.2 |
+| Qwen2.5-VL-Instruct-7B | raw | 59.0 |
+| Qwen2.5-VL-Instruct-7B | agent-zoom | 65.2 |
+| Qwen2.5-VL-Instruct-7B | agent-zoom-memory (**Ours**) | **67.8** |
 
 \* Full six-benchmark ablation will be updated upon completion of remaining runs.
 
@@ -152,7 +148,7 @@ Each benchmark is wrapped by the shared evaluation manifest in `data/Test/<bench
 |---|---|:---:|:---:|---|
 | MemRefine-IAD (Qwen2.5-VL-Instruct) | Qwen2.5-VL-Instruct | 3B | 76.9 | 🤗 *Coming soon* |
 | MemRefine-IAD (Qwen2.5-VL-Instruct) | Qwen2.5-VL-Instruct | 7B | 78.1 | 🤗 *Coming soon* |
-| MemRefine-IAD (LLaVA-OneVision-SI) | LLaVA-OneVision-SI | 7B | TBD | 🤗 *Coming soon* |
+| MemRefine-IAD (LLaVA-OneVision-SI) | LLaVA-OneVision-SI | 7B | 79.2 | 🤗 *Coming soon* |
 
 > LoRA checkpoints must be **merged** into a full model directory (with `config.json` + full weights) before being served by vLLM. We provide `scripts/merge_lora.py` for this purpose.
 
