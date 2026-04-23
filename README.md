@@ -319,11 +319,11 @@ We thank the authors for open-sourcing their work.
 If you find this project useful in your research, please consider citing:
 
 ```bibtex
-@article{wu2025memrefine,
-  title   = {MemRefine-IAD: Memory-Guided Iterative Agent for Industrial Anomaly Detection},
-  author  = {Wu, Maodong and Lv, Shuai},
-  journal = {arXiv preprint arXiv:xxxx.xxxxx},
-  year    = {2025}
+@misc{wu2026memrefine,
+  title={MemRefine-IAD: Memory-Guided Iterative Agent for Industrial Anomaly Detection},
+  author={Wu Maodong and Lv Shuai},
+  year={2026},
+  note={Unpublished work}
 }
 ```
 
