@@ -227,9 +227,15 @@ Each benchmark directory produces `answers.json` and `_accuracy.csv`; `summary.p
 ## 🌐 Web Demo
 
 <p align="center">
-  <img src="assets/web_demo_screenshot_placeholder.png" width="80%" alt="Web demo screenshot (placeholder)">
+  <img src="assets/use_demo.png" width="80%" alt="Web demo usage interface">
   <br>
-  <em>Figure 2. Real-time detection web demo (placeholder — to be replaced).</em>
+  <em>Figure 2. Web demo interface and workflow.</em>
+</p>
+
+<p align="center">
+  <img src="assets/result_demo.png" width="80%" alt="Web demo detection result">
+  <br>
+  <em>Figure 3. Web demo detection output and localization result.</em>
 </p>
 
 The demo supports two modes:
@@ -256,8 +262,6 @@ cd web
 pip install -r requirements.txt
 streamlit run app.py --server.port 7862 --server.address 0.0.0.0
 ```
-
-Then open `http://localhost:7862` (or `http://<your_server_ip>:7862` on LAN).
 
 ### Configuration
 

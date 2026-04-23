@@ -1,9 +1,9 @@
 import base64
 import io
 import json
-import math
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,6 +32,11 @@ except Exception:  # pragma: no cover
     cv2 = None
 
 
+# Common OpenAI-compatible defaults.
+DEFAULT_OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+DEFAULT_MODEL_NAME = "gpt-4o-mini"
+
+
 @dataclass
 class DistanceResult:
     score: float
@@ -46,6 +51,7 @@ class VLMResult:
     anomaly_label: Optional[str]
     location: str
     rationale: str
+    bbox: Optional[List[float]]
     raw_text: str
     error: str = ""
 
@@ -63,17 +69,26 @@ class FeatureExtractor:
         self.use_torch = bool(torch is not None and tv_models is not None and T is not None)
 
         if self.use_torch:
-            weights = tv_models.ResNet18_Weights.IMAGENET1K_V1
-            model = tv_models.resnet18(weights=weights)
-            self.model = torch.nn.Sequential(*list(model.children())[:-1]).eval().to(self.device)
-            self.tf = T.Compose(
-                [
-                    T.Resize(256),
-                    T.CenterCrop(224),
-                    T.ToTensor(),
-                    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ]
-            )
+            # Keep web startup fast/stable: by default do not trigger online weight download.
+            # Set MEMREFINE_WEB_USE_IMAGENET=1 if you explicitly want pretrained ResNet features.
+            use_imagenet = os.getenv("MEMREFINE_WEB_USE_IMAGENET", "0") == "1"
+            try:
+                weights = tv_models.ResNet18_Weights.IMAGENET1K_V1 if use_imagenet else None
+                model = tv_models.resnet18(weights=weights)
+                self.model = torch.nn.Sequential(*list(model.children())[:-1]).eval().to(self.device)
+                self.tf = T.Compose(
+                    [
+                        T.Resize(256),
+                        T.CenterCrop(224),
+                        T.ToTensor(),
+                        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    ]
+                )
+            except Exception:
+                # Fallback to non-torch handcrafted descriptor below.
+                self.use_torch = False
+                self.model = None
+                self.tf = None
         else:
             self.model = None
             self.tf = None
@@ -147,9 +162,26 @@ def anomaly_distance_judgement(
     )
 
 
-def _pil_to_data_url(img: Image.Image, fmt: str = "PNG") -> str:
+def _prepare_request_image(img: Image.Image, max_side: int = 1280) -> Image.Image:
+    """Resize image before API upload to reduce payload and latency."""
+    out = img.convert("RGB")
+    w, h = out.size
+    long_side = max(w, h)
+    if long_side <= max_side:
+        return out
+
+    scale = float(max_side) / float(long_side)
+    nw = max(1, int(round(w * scale)))
+    nh = max(1, int(round(h * scale)))
+    return out.resize((nw, nh), Image.Resampling.LANCZOS)
+
+
+def _pil_to_data_url(img: Image.Image, fmt: str = "JPEG", jpeg_quality: int = 85) -> str:
     buf = io.BytesIO()
-    img.save(buf, format=fmt)
+    if fmt.upper() == "JPEG":
+        img.save(buf, format="JPEG", quality=int(jpeg_quality), optimize=True)
+    else:
+        img.save(buf, format=fmt)
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     mime = "image/png" if fmt.upper() == "PNG" else "image/jpeg"
     return f"data:{mime};base64,{b64}"
@@ -177,13 +209,63 @@ def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _parse_bbox(raw_bbox: Any) -> Optional[List[float]]:
+    """Parse bbox as normalized [x1,y1,x2,y2] in [0,1]."""
+    if not isinstance(raw_bbox, (list, tuple)) or len(raw_bbox) != 4:
+        return None
+    try:
+        vals = [float(v) for v in raw_bbox]
+    except Exception:
+        return None
+    x1, y1, x2, y2 = vals
+    if x2 <= x1 or y2 <= y1:
+        return None
+    # If model outputs absolute-ish values, clamp anyway.
+    vals = [max(0.0, min(1.0, v)) for v in vals]
+    x1, y1, x2, y2 = vals
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return vals
+
+
+def draw_bbox_overlay(image: Image.Image, bbox: Optional[List[float]], label: str = "") -> Image.Image:
+    """Draw normalized bbox on image and return overlay image."""
+    arr = np.asarray(image.convert("RGB")).copy()
+    h, w = arr.shape[:2]
+    if bbox is None:
+        return Image.fromarray(arr)
+    x1, y1, x2, y2 = bbox
+    p1 = (int(x1 * w), int(y1 * h))
+    p2 = (int(x2 * w), int(y2 * h))
+
+    if cv2 is not None:
+        cv2.rectangle(arr, p1, p2, (255, 64, 64), 3)
+        if label:
+            cv2.putText(arr, label, (p1[0], max(20, p1[1] - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 64, 64), 2)
+    else:
+        # Fallback: rough rectangle by numpy slicing.
+        x1i, y1i = p1
+        x2i, y2i = p2
+        x1i, x2i = max(0, min(w - 1, x1i)), max(0, min(w - 1, x2i))
+        y1i, y2i = max(0, min(h - 1, y1i)), max(0, min(h - 1, y2i))
+        arr[y1i:y1i + 3, x1i:x2i] = [255, 64, 64]
+        arr[y2i - 3:y2i, x1i:x2i] = [255, 64, 64]
+        arr[y1i:y2i, x1i:x1i + 3] = [255, 64, 64]
+        arr[y1i:y2i, x2i - 3:x2i] = [255, 64, 64]
+    return Image.fromarray(arr)
+
+
 def call_vlm_for_anomaly_and_location(
     image: Image.Image,
-    model_name: str,
-    base_url: str = "http://127.0.0.1:8000/v1",
-    api_key: str = "EMPTY",
+    model_name: Optional[str] = None,
+    endpoint_url: Optional[str] = None,
+    api_key: Optional[str] = None,
     known_category: str = "",
+    user_description: str = "",
     timeout_s: int = 120,
+    max_image_side: int = 1280,
+    jpeg_quality: int = 85,
+    retries: int = 2,
 ) -> VLMResult:
     if requests is None:
         return VLMResult(
@@ -191,22 +273,42 @@ def call_vlm_for_anomaly_and_location(
             anomaly_label=None,
             location="",
             rationale="",
+            bbox=None,
             raw_text="",
             error="requests is not installed.",
         )
 
+    model_name = (model_name or DEFAULT_MODEL_NAME).strip()
+    endpoint_url = (endpoint_url or DEFAULT_OPENAI_ENDPOINT).strip()
+    api_key = (api_key or "").strip()
+
+    if not api_key:
+        return VLMResult(
+            ok=False,
+            anomaly_label=None,
+            location="",
+            rationale="",
+            bbox=None,
+            raw_text="",
+            error="Missing API key. Please provide it in the web sidebar.",
+        )
+
     prompt = (
         "You are an industrial anomaly inspector. "
-        "Given one image, decide anomaly and location. "
+        "Given one image, decide anomaly and location with a bounding box. "
         "Return strict JSON with keys: "
-        "anomaly_label (A or B), location, rationale. "
+        "anomaly_label (A or B), bbox, location, rationale. "
         "A means normal; B means anomaly. "
+        "bbox must be either null or [x1,y1,x2,y2] normalized to [0,1]. "
         "location should be concise, e.g., 'top-left screw edge'."
     )
     if known_category.strip():
         prompt += f" Known category: {known_category.strip()}."
+    if user_description.strip():
+        prompt += f" Extra context from user: {user_description.strip()}."
 
-    data_url = _pil_to_data_url(image)
+    req_img = _prepare_request_image(image, max_side=max_image_side)
+    data_url = _pil_to_data_url(req_img, fmt="JPEG", jpeg_quality=jpeg_quality)
     payload = {
         "model": model_name,
         "temperature": 0.0,
@@ -227,38 +329,64 @@ def call_vlm_for_anomaly_and_location(
     }
 
     try:
-        resp = requests.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers=headers,
-            data=json.dumps(payload),
-            timeout=timeout_s,
-        )
-        resp.raise_for_status()
-        body = resp.json()
-        text = body["choices"][0]["message"]["content"]
+        # Accept either full chat/completions endpoint or base URL.
+        if endpoint_url.rstrip("/").endswith("/chat/completions"):
+            post_url = endpoint_url.rstrip("/")
+        else:
+            post_url = f"{endpoint_url.rstrip('/')}/chat/completions"
 
-        parsed = _extract_json_object(text)
-        if parsed is None:
-            return VLMResult(
-                ok=False,
-                anomaly_label=None,
-                location="",
-                rationale="",
-                raw_text=text,
-                error="Model returned non-JSON output.",
-            )
+        # Split connect/read timeout to fail fast on bad handshakes but keep generation window.
+        connect_timeout = min(20, max(5, int(timeout_s // 6)))
+        request_timeout = (connect_timeout, int(timeout_s))
+        last_error = ""
+        attempts = max(1, int(retries) + 1)
 
-        label = str(parsed.get("anomaly_label", "")).strip().upper()
-        if label not in {"A", "B"}:
-            label = None
+        for attempt in range(attempts):
+            try:
+                resp = requests.post(
+                    post_url,
+                    headers=headers,
+                    data=json.dumps(payload),
+                    timeout=request_timeout,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                text = body["choices"][0]["message"]["content"]
 
-        return VLMResult(
-            ok=True,
-            anomaly_label=label,
-            location=str(parsed.get("location", "")).strip(),
-            rationale=str(parsed.get("rationale", "")).strip(),
-            raw_text=text,
-        )
+                parsed = _extract_json_object(text)
+                if parsed is None:
+                    return VLMResult(
+                        ok=False,
+                        anomaly_label=None,
+                        location="",
+                        rationale="",
+                        bbox=None,
+                        raw_text=text,
+                        error="Model returned non-JSON output.",
+                    )
+
+                label = str(parsed.get("anomaly_label", "")).strip().upper()
+                if label not in {"A", "B"}:
+                    label = None
+
+                bbox = _parse_bbox(parsed.get("bbox"))
+                return VLMResult(
+                    ok=True,
+                    anomaly_label=label,
+                    location=str(parsed.get("location", "")).strip(),
+                    rationale=str(parsed.get("rationale", "")).strip(),
+                    bbox=bbox,
+                    raw_text=text,
+                )
+            except Exception as inner:
+                last_error = str(inner)
+                # Retry transient handshake/transport failures with short backoff.
+                if attempt < attempts - 1:
+                    time.sleep(1.5 * (2 ** attempt))
+                    continue
+                break
+
+        raise RuntimeError(last_error or "Unknown request error.")
 
     except Exception as e:
         return VLMResult(
@@ -266,6 +394,7 @@ def call_vlm_for_anomaly_and_location(
             anomaly_label=None,
             location="",
             rationale="",
+            bbox=None,
             raw_text="",
             error=str(e),
         )
