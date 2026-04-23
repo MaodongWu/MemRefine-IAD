@@ -17,10 +17,6 @@
   <em>Figure 1. Overview of MemRefine-IAD.</em>
 </p>
 
-<p align="right">
-  <img src="assets/xianyu.png" width="64" alt="MemRefine-IAD mark">
-</p>
-
 ---
 
 ## 📌 Abstract
