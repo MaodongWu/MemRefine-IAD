@@ -12,9 +12,13 @@
 > Wu Maodong, Lv Shuai.
 
 <p align="center">
-  <img src="assets/xianyu.png" width="85%" alt="MemRefine-IAD pipeline (placeholder)">
+  <img src="assets/head_pic.png" width="85%" alt="MemRefine-IAD pipeline">
   <br>
-  <em>Figure 1. Overview of MemRefine-IAD (placeholder — to be replaced).</em>
+  <em>Figure 1. Overview of MemRefine-IAD.</em>
+</p>
+
+<p align="right">
+  <img src="assets/xianyu.png" width="64" alt="MemRefine-IAD mark">
 </p>
 
 ---
